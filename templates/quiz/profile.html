@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>Student Profile</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 text-center">
+                {% if profile.profile_image %}
+                <img src="{{ profile.profile_image.url }}" alt="Profile Image" class="rounded-circle img-fluid" style="max-width: 150px;">
+                {% else %}
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+                    <span class="text-white display-4">{{ profile.user.first_name|first|upper }}</span>
+                </div>
+                {% endif %}
+                
+                {% if is_owner %}
+                <div class="mt-3">
+                    <button id="edit-profile-btn" class="btn btn-primary">Edit Profile</button>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-8">
+                {% if is_owner %}
+                <form id="profile-form" method="post" enctype="multipart/form-data" style="display: none;">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="institution">Institution</label>
+                        <input type="text" class="form-control" id="institution" name="institution" value="{{ profile.institution }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="student_class">Class</label>
+                        <input type="text" class="form-control" id="student_class" name="student_class" value="{{ profile.student_class }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile_image">Profile Image</label>
+                        <input type="file" class="form-control-file" id="profile_image" name="profile_image">
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                    <button type="button" id="cancel-edit" class="btn btn-secondary">Cancel</button>
+                </form>
+                {% endif %}
+                
+                <div id="profile-info">
+                    <h4>{{ profile.user.get_full_name|default:profile.user.username }}</h4>
+                    <p><strong>Email:</strong> {{ profile.user.email }}</p>
+                    <p><strong>Institution:</strong> {{ profile.institution|default:"Not specified" }}</p>
+                    <p><strong>Class:</strong> {{ profile.student_class|default:"Not specified" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editBtn = document.getElementById('edit-profile-btn');
+        const profileForm = document.getElementById('profile-form');
+        const profileInfo = document.getElementById('profile-info');
+        const cancelBtn = document.getElementById('cancel-edit');
+        
+        if (editBtn) {
+            editBtn.addEventListener('click', function() {
+                profileForm.style.display = 'block';
+                profileInfo.style.display = 'none';
+                editBtn.style.display = 'none';
+            });
+            
+            cancelBtn.addEventListener('click', function() {
+                profileForm.style.display = 'none';
+                profileInfo.style.display = 'block';
+                editBtn.style.display = 'block';
+            });
+            
+            profileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch("{% url 'my_profile' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

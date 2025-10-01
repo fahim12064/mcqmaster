@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{{ quiz_data|json_script:"quiz-data" }}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3>{{ quiz.title }}</h3>
+        <div id="timer" class="badge badge-primary">Time Left: <span id="time">{{ quiz.duration_minutes }}:00</span></div>
+    </div>
+    <div class="card-body">
+        <form id="quiz-form">
+            {% for question in quiz.questions_json.questions %}
+            <div class="card mb-4 question-card" id="question-{{ question.id }}">
+                <div class="card-header">
+                    <h5>Question {{ forloop.counter }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="question-text">{{ question.text }}</p>
+                    <div class="list-group">
+                        {% for option in question.options %}
+                        <div class="list-group-item option-item" data-question="{{ question.id }}" data-value="{{ forloop.counter0 }}">
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="option-{{ question.id }}-{{ forloop.counter0 }}" 
+                                    name="question-{{ question.id }}" 
+                                    class="custom-control-input" 
+                                    value="{{ forloop.counter0 }}">
+                                <label class="custom-control-label w-100" for="option-{{ question.id }}-{{ forloop.counter0 }}">
+                                    {{ option }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-center">
+                <button type="button" id="submit-btn" class="btn btn-success btn-lg">Submit Quiz</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div class="modal fade" id="submitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Submit Quiz</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to submit your answers?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button id="confirm-submit" type="button" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .option-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .option-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .option-item.selected {
+        background-color: #e9ecef;
+    }
+    
+    .option-item.disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
+    .custom-control-label {
+        cursor: pointer;
+    }
+    
+    .question-card.answered .option-item:not(.selected) {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
+    .question-card.answered .option-item:not(.selected) .custom-control-input {
+        cursor: not-allowed;
+    }
+    
+    .question-card.answered .option-item:not(.selected) .custom-control-label {
+        cursor: not-allowed;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the quiz data from the script tag
+        const quizDataElement = document.getElementById('quiz-data');
+        if (!quizDataElement) {
+            console.error('Quiz data not found');
+            document.getElementById('quiz-container').innerHTML = 
+                '<div class="alert alert-danger">Error loading quiz data. Please try again later.</div>';
+            return;
+        }
+
+        let quizData;
+        try {
+            quizData = JSON.parse(quizDataElement.textContent);
+        } catch (e) {
+            console.error('Error parsing quiz data:', e);
+            document.getElementById('quiz-container').innerHTML = 
+                '<div class="alert alert-danger">Error loading quiz data. Please try again later.</div>';
+            return;
+        }
+        
+        // Check if quiz data is valid
+        if (!quizData || !quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+            document.getElementById('quiz-container').innerHTML = 
+                '<div class="alert alert-danger">No questions found in this quiz.</div>';
+            return;
+        }
+        
+        let timeLeft = {{ quiz.duration_minutes }} * 60; // in seconds
+        
+        // Timer
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('time').textContent = 
+                `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                submitQuiz();
+            }
+        }, 1000);
+        
+        // Add click event to option items
+        document.querySelectorAll('.option-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const questionId = this.dataset.question;
+                const value = this.dataset.value;
+                const questionCard = document.getElementById(`question-${questionId}`);
+                
+                // Check if this question is already answered
+                if (questionCard.classList.contains('answered')) {
+                    return;
+                }
+                
+                // Select the radio button
+                const radioInput = this.querySelector('input[type="radio"]');
+                radioInput.checked = true;
+                
+                // Mark this option as selected
+                this.classList.add('selected');
+                
+                // Mark other options in this question as not selected
+                const otherOptions = questionCard.querySelectorAll('.option-item');
+                otherOptions.forEach(opt => {
+                    if (opt !== this) {
+                        opt.classList.remove('selected');
+                    }
+                });
+                
+                // Mark the question as answered
+                questionCard.classList.add('answered');
+                
+                // Disable all options in this question
+                otherOptions.forEach(opt => {
+                    opt.classList.add('disabled');
+                    opt.querySelector('input[type="radio"]').disabled = true;
+                });
+            });
+        });
+        
+        // Submit quiz
+        document.getElementById('submit-btn').addEventListener('click', function() {
+            // Check if all questions are answered
+            const answeredCount = document.querySelectorAll('.question-card.answered').length;
+            if (answeredCount < quizData.questions.length) {
+                if (!confirm(`You have answered ${answeredCount} out of ${quizData.questions.length} questions. Do you want to submit anyway?`)) {
+                    return;
+                }
+            }
+            
+            // Show modal
+            const modal = document.getElementById('submitModal');
+            modal.classList.add('show');
+            modal.style.display = 'block';
+            document.body.classList.add('modal-open');
+            
+            // Add backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+        });
+        
+        // Close modal when cancel is clicked
+        document.querySelector('#submitModal .btn-secondary').addEventListener('click', function() {
+            const modal = document.getElementById('submitModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            
+            // Remove backdrop
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+        });
+        
+        document.getElementById('confirm-submit').addEventListener('click', function() {
+            const modal = document.getElementById('submitModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            
+            // Remove backdrop
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+            
+            submitQuiz();
+        });
+        
+        function submitQuiz() {
+            clearInterval(timerInterval);
+            
+            // Collect all answers
+            const answers = {};
+            document.querySelectorAll('.question-card.answered').forEach(card => {
+                const questionId = card.id.replace('question-', '');
+                const selectedOption = card.querySelector('input[type="radio"]:checked');
+                if (selectedOption) {
+                    answers[questionId] = parseInt(selectedOption.value);
+                }
+            });
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            
+            fetch("{% url 'take_quiz' quiz.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ answers: answers })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Store the score in localStorage to show it multiple times
+                    localStorage.setItem('lastQuizScore', JSON.stringify({
+                        score: data.score,
+                        total: data.total,
+                        timestamp: new Date().toISOString()
+                    }));
+                    window.location.href = `{% url 'quiz_result' quiz.id %}`;
+                } else {
+                    throw new Error(data.message || 'Error submitting quiz');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting quiz: ' + error.message);
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit Quiz';
+            });
+        }
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}
