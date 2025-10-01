@@ -70,16 +70,18 @@ WSGI_APPLICATION = 'mcqmaster.wsgi.application'
 
 # --- Database ---
 # 4. ডেটাবেস কনফিগারেশন: Vercel-এর জন্য একটিমাত্র URL ব্যবহার করা হবে।
-if 'DATABASE_URL' in os.environ:
-    # প্রোডাকশন (Vercel) পরিবেশের জন্য
+import dj_database_url
+import os
+
+if os.environ.get("DATABASE_URL"):
     DATABASES = {
         'default': dj_database_url.config(
             conn_max_age=600,
             conn_health_checks=True,
+            ssl_require=True
         )
     }
 else:
-    # লোকাল ডেভেলপমেন্টের জন্য আপনার .env ফাইল থেকে তথ্য নেওয়া হবে
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
