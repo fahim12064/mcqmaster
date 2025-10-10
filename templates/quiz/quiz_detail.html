@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'class_list' %}">Classes</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'subject_list' quiz.subject.class_name.id %}">{{ quiz.subject.class_name.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'quiz_list' quiz.subject.id %}">{{ quiz.subject.name }}</a></li>
+            <li class="breadcrumb-item active">{{ quiz.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ quiz.title }}</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Subject:</strong> {{ quiz.subject.name }}</p>
+            <p><strong>Duration:</strong> {{ quiz.duration_minutes }} minutes</p>
+            <p><strong>Total Questions:</strong> {{ quiz.questions_json.questions|length }}</p>
+            
+            {% if attempted %}
+            <div class="alert alert-info">
+                You have already attempted this quiz. <a href="{% url 'student_quiz_result' quiz.id %}">View your results</a>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                Are you ready to start the quiz? Once started, you cannot pause or restart.
+            </div>
+            <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-success btn-lg">Start Quiz</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

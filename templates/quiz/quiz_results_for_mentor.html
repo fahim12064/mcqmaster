@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Results for: {{ quiz.title }}</h2>
+
+    {% if attempts %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Rank</th>
+                        <th scope="col">Student Name</th>
+                        <th scope="col">Score</th>
+                        <th scope="col">Percentage</th>
+                        <th scope="col">Attempted On</th>
+                        <th scope="col">Details</th> <!-- নতুন কলাম -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in attempts %}
+                        <tr>
+                            <th scope="row">{{ forloop.counter }}</th>
+                            <td><a href="{% url 'profile' attempt.user.id %}">{{ attempt.user.get_full_name|default:attempt.user.username }}</a></td>
+                            <td>{{ attempt.score }} / {{ attempt.total_questions }}</td>
+                            <td>
+                                {% if attempt.total_questions > 0 %}
+                                    {{ attempt.score|mul:100|div:attempt.total_questions|floatformat:2 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>{{ attempt.timestamp|date:"d M Y, h:i A" }}</td>
+                            <td>
+                                <!-- View Details বাটন -->
+                                <a href="{% url 'mentor_view_student_attempt' attempt.id %}" class="btn btn-sm btn-info">View Details</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">No one has attempted this quiz yet.</div>
+    {% endif %}
+
+    <a href="{% url 'mentor_dashboard' %}" class="btn btn-secondary mt-3">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock %}

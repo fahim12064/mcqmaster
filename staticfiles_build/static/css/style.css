@@ -1,0 +1,41 @@
+/* Footer styles */
+footer {
+    margin-top: auto;
+}
+
+.social-icons a {
+    transition: transform 0.3s ease;
+}
+
+.social-icons a:hover {
+    transform: scale(1.2);
+    color: #007bff !important;
+}
+
+/* Make footer stick to bottom */
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Dropdown menu styles */
+.dropdown-menu {
+    display: none;
+}
+
+.dropdown.show .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    cursor: pointer;
+}
+
+/* Fix for dropdown closing too quickly */
+.dropdown {
+    position: relative;
+}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Mentor Dashboard</h2>
+    <p>Select a quiz to view student performance:</p>
+    
+    <div class="list-group">
+        {% for quiz in quizzes %}
+            <!-- URL ঠিক করা হয়েছে mentor_quiz_results_list এ -->
+            <a href="{% url 'mentor_quiz_results_list' quiz.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">{{ quiz.title }}</h5>
+                    <small>{{ quiz.subject.class_name.name }} - {{ quiz.subject.name }}</small>
+                </div>
+                <span class="badge badge-primary badge-pill">{{ quiz.quizattempt_set.count }} attempts</span>
+            </a>
+        {% empty %}
+            <div class="alert alert-info">No quizzes found.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

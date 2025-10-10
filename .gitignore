@@ -1,0 +1,12 @@
+# .gitignore
+
+# ... (আপনার আগের কোড)
+
+# Environment variables
+.env
+
+# Static files
+/staticfiles
+
+# Media files
+/media

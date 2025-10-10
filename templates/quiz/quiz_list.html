@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'class_list' %}">Classes</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'subject_list' subject.class_name.id %}">{{ subject.class_name.name }}</a></li>
+            <li class="breadcrumb-item active">{{ subject.name }}</li>
+        </ol>
+    </nav>
+    
+    <h2 class="mb-4">Quizzes in {{ subject.name }}</h2>
+    <div class="row">
+        {% for quiz in quizzes %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ quiz.title }}</h5>
+                    <p class="card-text">
+                        <strong>Duration:</strong> {{ quiz.duration_minutes }} minutes<br>
+                        <strong>Questions:</strong> {{ quiz.questions_json.questions|length }}
+                    </p>
+                    <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-primary">View Details</a>
+                </div>
+                <div class="card-footer text-muted">
+                    Created on {{ quiz.created_at|date:"d M Y" }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning">
+                No quizzes available for this subject.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
